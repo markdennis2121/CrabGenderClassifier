@@ -25,13 +25,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application files
 COPY . .
 
-# Create uploads directory
-RUN mkdir -p static/uploads
+# Expose port (7860 for Hugging Face, or dynamic $PORT)
+EXPOSE 7860
 
-# Expose default port
-EXPOSE 5000
+# Ensure static/uploads has full write permissions for non-root user 1000
+RUN mkdir -p static/uploads && chmod -R 777 static/uploads
 
 # Command to run the application using Gunicorn dynamically binding to PORT
-CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-5000} --workers 1 --threads 2 --timeout 120"]
+CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-7860} --workers 1 --threads 2 --timeout 120"]
+
 
 
