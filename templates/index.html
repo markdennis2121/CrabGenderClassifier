@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blue Swimming Crab Gender Classification | Thesis Project</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="bg-light">
+
+    <!-- Top Navigation / Academic Header -->
+    <nav class="navbar navbar-dark bg-slate-900 shadow-sm sticky-top py-3">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-3" href="#">
+                <div class="brand-icon-wrapper">
+                    <i class="fa-solid font-awesome fa-vial-virus text-cyan"></i>
+                </div>
+                <div>
+                    <span class="fs-5 fw-bold font-outfit text-white d-block">Blue Swimming Crab Gender Classification</span>
+                    <small class="text-cyan-300 fs-7 fw-normal">Automated Image Inspection • ResNet50 Thesis Model</small>
+                </div>
+            </a>
+            <div class="d-none d-md-flex align-items-center gap-2">
+                {% if model_loaded %}
+                    <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle rounded-pill px-3 py-2">
+                        <i class="fa-solid fa-circle-check me-1"></i> Model Active (CrabClassifier_v2.keras)
+                    </span>
+                {% else %}
+                    <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle rounded-pill px-3 py-2" title="{{ model_error }}">
+                        <i class="fa-solid fa-triangle-exclamation me-1"></i> Model Load Warning
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="container my-4 my-lg-5">
+
+        <!-- Thesis Title Hero Banner -->
+        <section class="hero-banner p-4 p-md-5 mb-4 rounded-4 text-white shadow-lg position-relative overflow-hidden">
+            <div class="hero-bg-overlay"></div>
+            <div class="row align-items-center position-relative z-1">
+                <div class="col-lg-8">
+                    <span class="badge bg-cyan-500 text-dark fw-bold uppercase tracking-wider mb-2 px-3 py-2 rounded-pill">
+                        <i class="fa-solid fa-graduation-cap me-1"></i> Academic Research Demonstration
+                    </span>
+                    <h1 class="display-6 fw-bold font-outfit text-white mb-2">
+                        Blue Swimming Crab (<span class="fst-italic text-cyan-200">Portunus pelagicus</span>) Gender Classifier
+                    </h1>
+                    <p class="text-slate-300 mb-0 leading-relaxed fs-6">
+                        Upload an image of a Blue Swimming Crab to predict its gender with high precision using the trained deep convolutional network <span class="fw-semibold text-white">CrabClassifier_v2.keras</span> (ResNet50 Architecture, 224x224 px input).
+                    </p>
+                </div>
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                    <div class="model-badge-card p-3 rounded-3 bg-white bg-opacity-10 backdrop-blur border border-white border-opacity-20 d-inline-block text-start">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <i class="fa-solid fa-microchip text-cyan-300"></i>
+                            <span class="fw-semibold text-white fs-7">Model Specs</span>
+                        </div>
+                        <ul class="list-unstyled mb-0 fs-7 text-slate-200">
+                            <li><i class="fa-solid fa-check text-cyan-400 me-1"></i> Input: 224×224 RGB</li>
+                            <li><i class="fa-solid fa-check text-cyan-400 me-1"></i> ResNet50 Preprocess</li>
+                            <li><i class="fa-solid fa-check text-cyan-400 me-1"></i> Binary Gender Output</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {% if not model_loaded %}
+        <div class="alert alert-warning border-0 shadow-sm rounded-3 d-flex align-items-center gap-3 mb-4" role="alert">
+            <i class="fa-solid fa-triangle-exclamation fs-3 text-warning"></i>
+            <div>
+                <strong>Notice regarding Model Loading:</strong> {{ model_error }}
+                <div class="fs-7 mt-1 text-muted">Ensure <code>CrabClassifier_v2.keras</code> is placed in the project root directory.</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Interactive Content Grid -->
+        <div class="row g-4">
+
+            <!-- Left Panel: Image Upload & Preview Card -->
+            <div class="col-lg-6">
+                <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden">
+                    <div class="card-header bg-white py-3 px-4 border-bottom border-light">
+                        <h5 class="card-title fw-bold font-outfit mb-0 text-slate-800 d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-cloud-arrow-up text-primary"></i> 1. Select & Upload Image
+                        </h5>
+                    </div>
+                    <div class="card-body p-4 d-flex flex-column justify-content-between">
+                        <div>
+                            <!-- Dropzone -->
+                            <div id="dropZone" class="drop-zone border-2 border-dashed rounded-4 p-4 text-center cursor-pointer mb-3 transition-all">
+                                <input type="file" id="imageInput" accept="image/*" class="d-none">
+                                <div id="dropZonePrompt" class="py-4">
+                                    <div class="upload-icon-circle mx-auto mb-3">
+                                        <i class="fa-solid fa-image text-primary fs-2"></i>
+                                    </div>
+                                    <h6 class="fw-semibold text-slate-800 mb-1">Drag and drop crab image here</h6>
+                                    <p class="text-muted fs-7 mb-3">or click anywhere to browse from your device</p>
+                                    <span class="btn btn-outline-primary btn-sm rounded-pill px-4">
+                                        <i class="fa-solid fa-folder-open me-1"></i> Browse File
+                                    </span>
+                                </div>
+
+                                <!-- Image Preview Container -->
+                                <div id="previewContainer" class="d-none position-relative">
+                                    <div class="preview-img-wrapper rounded-3 overflow-hidden shadow-sm bg-slate-900 mx-auto" style="max-height: 320px;">
+                                        <img id="imagePreview" src="" alt="Crab Preview" class="img-fluid object-fit-contain w-100 h-100">
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mt-3 bg-slate-100 p-2 px-3 rounded-3 fs-7">
+                                        <span id="fileName" class="text-truncate me-2 fw-medium text-slate-700">filename.jpg</span>
+                                        <button type="button" id="removeImageBtn" class="btn btn-sm btn-link text-danger p-0 text-decoration-none fw-semibold">
+                                            <i class="fa-solid fa-trash-can me-1"></i> Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert bg-slate-50 border border-slate-200 rounded-3 p-3 mb-0 fs-7 text-slate-600">
+                                <div class="d-flex gap-2">
+                                    <i class="fa-solid fa-circle-info text-info mt-1 fs-6"></i>
+                                    <div>
+                                        <strong>Image Tip for Best Accuracy:</strong> Upload clear photos showing the crab ventral (underside) abdomen view, as abdomen shape is the primary diagnostic anatomical feature for gender.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Button -->
+                        <div class="mt-4">
+                            <button id="predictBtn" class="btn btn-primary btn-lg w-100 rounded-3 fw-bold py-3 shadow-sm d-flex align-items-center justify-content-center gap-2" disabled>
+                                <span id="btnText"><i class="fa-solid fa-magnifying-glass-chart me-1"></i> Predict Gender</span>
+                                <span id="btnSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Results & Confidence Metrics -->
+            <div class="col-lg-6">
+                <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden">
+                    <div class="card-header bg-white py-3 px-4 border-bottom border-light d-flex align-items-center justify-content-between">
+                        <h5 class="card-title fw-bold font-outfit mb-0 text-slate-800 d-flex align-items-center gap-2">
+                            <i class="fa-solid fa-square-poll-vertical text-primary"></i> 2. Prediction Results
+                        </h5>
+                        <span class="badge bg-slate-100 text-slate-600 rounded-pill px-3 py-1 fs-7 fw-medium">ResNet50 Inference</span>
+                    </div>
+                    <div class="card-body p-4 d-flex flex-column justify-content-center" id="resultsBody">
+
+                        <!-- Initial Empty State -->
+                        <div id="emptyState" class="text-center py-5">
+                            <div class="empty-state-icon mx-auto mb-3 text-slate-300">
+                                <i class="fa-solid fa-crab fs-1 opacity-50"></i>
+                                <i class="fa-solid fa-dna fs-1 d-block mt-2"></i>
+                            </div>
+                            <h6 class="fw-semibold text-slate-700">Awaiting Image Input</h6>
+                            <p class="text-muted fs-7 mb-0 max-w-sm mx-auto">
+                                Select or drag a crab image into the upload box on the left, then click <strong>Predict Gender</strong> to view confidence analysis.
+                            </p>
+                        </div>
+
+                        <!-- Analysis Loading State -->
+                        <div id="loadingState" class="text-center py-5 d-none">
+                            <div class="spinner-grow text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                                <span class="visually-hidden">Analyzing...</span>
+                            </div>
+                            <h6 class="fw-bold text-slate-800 font-outfit mb-1">Running Deep Learning Model...</h6>
+                            <p class="text-muted fs-7 mb-0">Resizing to 224×224 • Applying ResNet50 Preprocess • Computing Class Probabilities</p>
+                        </div>
+
+                        <!-- Result Display Panel -->
+                        <div id="resultState" class="d-none">
+                            
+                            <!-- Predicted Gender Primary Display -->
+                            <div id="genderBadgeCard" class="gender-result-card p-4 rounded-4 text-center text-white mb-4 shadow-sm transition-all position-relative overflow-hidden">
+                                <span class="text-uppercase tracking-widest fs-7 opacity-75 fw-semibold d-block mb-1">Predicted Gender</span>
+                                <div class="d-flex align-items-center justify-content-center gap-3 my-2">
+                                    <i id="genderIcon" class="fa-solid fa-mars fs-1"></i>
+                                    <h2 id="predictedGenderText" class="display-5 fw-extrabold font-outfit mb-0">FEMALE</h2>
+                                </div>
+                                <div class="badge bg-white bg-opacity-20 px-3 py-1 rounded-pill fs-7 fw-medium mt-1">
+                                    Primary Classification Confidence: <span id="topConfidenceVal">0%</span>
+                                </div>
+                            </div>
+
+                            <!-- Confidence Bars -->
+                            <div class="confidence-container bg-slate-50 p-4 rounded-4 border border-slate-200 mb-4">
+                                <h6 class="fw-bold text-slate-800 mb-3 fs-7 text-uppercase tracking-wider">
+                                    <i class="fa-solid fa-chart-bar me-1 text-primary"></i> Confidence Probability Breakdown
+                                </h6>
+
+                                <!-- Female Confidence Bar -->
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="fw-semibold fs-7 text-slate-700 d-flex align-items-center gap-2">
+                                            <i class="fa-solid fa-venus text-pink-500 fs-6"></i> Female Confidence
+                                        </span>
+                                        <span id="femaleConfText" class="fw-bold fs-6 text-pink-600">0.00%</span>
+                                    </div>
+                                    <div class="progress progress-lg bg-slate-200 rounded-pill overflow-hidden">
+                                        <div id="femaleProgressBar" class="progress-bar bg-gradient-female transition-all" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Male Confidence Bar -->
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="fw-semibold fs-7 text-slate-700 d-flex align-items-center gap-2">
+                                            <i class="fa-solid fa-mars text-blue-500 fs-6"></i> Male Confidence
+                                        </span>
+                                        <span id="maleConfText" class="fw-bold fs-6 text-blue-600">0.00%</span>
+                                    </div>
+                                    <div class="progress progress-lg bg-slate-200 rounded-pill overflow-hidden">
+                                        <div id="maleProgressBar" class="progress-bar bg-gradient-male transition-all" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Model Inspection Metadata -->
+                            <div class="p-3 bg-white border border-slate-200 rounded-3 fs-7 text-slate-600">
+                                <div class="row g-2 text-center text-sm-start">
+                                    <div class="col-sm-6">
+                                        <span class="text-muted d-block fs-8">Preprocessing Applied:</span>
+                                        <span class="fw-medium text-slate-800"><i class="fa-solid fa-check text-success me-1"></i>ResNet50 preprocess_input</span>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <span class="text-muted d-block fs-8">Tensor Dimensions:</span>
+                                        <span class="fw-medium text-slate-800"><i class="fa-solid fa-expand text-primary me-1"></i>(1, 224, 224, 3)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Error State Container -->
+                        <div id="errorState" class="alert alert-danger border-0 rounded-3 p-3 d-none mt-3" role="alert">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fa-solid fa-circle-exclamation fs-5"></i>
+                                <span id="errorMessage" class="fw-medium">An error occurred during prediction.</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Thesis Footer -->
+    <footer class="footer bg-white border-top border-slate-200 py-4 mt-5 text-center text-muted fs-7">
+        <div class="container">
+            <p class="mb-1 fw-semibold text-slate-700">Blue Swimming Crab (<em>Portunus pelagicus</em>) Gender Classification Thesis</p>
+            <p class="mb-0">Powered by Flask Backend • ResNet50 Keras Deep Learning • Bootstrap 5 UI</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Application Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropZone = document.getElementById('dropZone');
+            const imageInput = document.getElementById('imageInput');
+            const dropZonePrompt = document.getElementById('dropZonePrompt');
+            const previewContainer = document.getElementById('previewContainer');
+            const imagePreview = document.getElementById('imagePreview');
+            const fileName = document.getElementById('fileName');
+            const removeImageBtn = document.getElementById('removeImageBtn');
+            const predictBtn = document.getElementById('predictBtn');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+
+            const emptyState = document.getElementById('emptyState');
+            const loadingState = document.getElementById('loadingState');
+            const resultState = document.getElementById('resultState');
+            const errorState = document.getElementById('errorState');
+            const errorMessage = document.getElementById('errorMessage');
+
+            const genderBadgeCard = document.getElementById('genderBadgeCard');
+            const genderIcon = document.getElementById('genderIcon');
+            const predictedGenderText = document.getElementById('predictedGenderText');
+            const topConfidenceVal = document.getElementById('topConfidenceVal');
+
+            const femaleConfText = document.getElementById('femaleConfText');
+            const femaleProgressBar = document.getElementById('femaleProgressBar');
+            const maleConfText = document.getElementById('maleConfText');
+            const maleProgressBar = document.getElementById('maleProgressBar');
+
+            let selectedFile = null;
+
+            // Trigger file dialog on dropzone click
+            dropZone.addEventListener('click', (e) => {
+                if (e.target.closest('#removeImageBtn')) return;
+                imageInput.click();
+            });
+
+            // Handle file input change
+            imageInput.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    handleFileSelect(this.files[0]);
+                }
+            });
+
+            // Drag and drop handlers
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-active'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-active'), false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files && files.length > 0) {
+                    handleFileSelect(files[0]);
+                }
+            });
+
+            function handleFileSelect(file) {
+                if (!file.type.match('image.*')) {
+                    showError('Please select a valid image file (JPG, PNG, WEBP, etc.).');
+                    return;
+                }
+                selectedFile = file;
+                fileName.textContent = file.name;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    dropZonePrompt.classList.add('d-none');
+                    previewContainer.classList.remove('d-none');
+                    predictBtn.disabled = false;
+                    hideError();
+                };
+                reader.readAsDataURL(file);
+            }
+
+            removeImageBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                resetImageSelection();
+            });
+
+            function resetImageSelection() {
+                selectedFile = null;
+                imageInput.value = '';
+                imagePreview.src = '';
+                previewContainer.classList.add('d-none');
+                dropZonePrompt.classList.remove('d-none');
+                predictBtn.disabled = true;
+                
+                // Reset right panel to empty state
+                emptyState.classList.remove('d-none');
+                loadingState.classList.add('d-none');
+                resultState.classList.add('d-none');
+                hideError();
+            }
+
+            // Handle Prediction
+            predictBtn.addEventListener('click', async function() {
+                if (!selectedFile) return;
+
+                // UI Loading state
+                predictBtn.disabled = true;
+                btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Processing...';
+                btnSpinner.classList.remove('d-none');
+
+                emptyState.classList.add('d-none');
+                resultState.classList.add('d-none');
+                errorState.classList.add('d-none');
+                loadingState.classList.remove('d-none');
+
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+
+                try {
+                    const response = await fetch('/predict', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok || data.error) {
+                        throw new Error(data.error || 'Prediction failed');
+                    }
+
+                    // Display results
+                    displayResults(data);
+
+                } catch (err) {
+                    showError(err.message || 'Error occurred while contacting prediction server.');
+                    loadingState.classList.add('d-none');
+                } finally {
+                    predictBtn.disabled = false;
+                    btnText.innerHTML = '<i class="fa-solid fa-magnifying-glass-chart me-1"></i> Predict Gender';
+                    btnSpinner.classList.add('d-none');
+                }
+            });
+
+            function displayResults(data) {
+                loadingState.classList.add('d-none');
+                resultState.classList.remove('d-none');
+
+                const gender = data.predicted_gender; // "Female" or "Male"
+                const femaleConf = data.female_confidence;
+                const maleConf = data.male_confidence;
+
+                predictedGenderText.textContent = gender.toUpperCase();
+
+                if (gender === 'Female') {
+                    genderBadgeCard.className = 'gender-result-card p-4 rounded-4 text-center text-white mb-4 shadow-sm bg-gradient-female';
+                    genderIcon.className = 'fa-solid fa-venus fs-1';
+                    topConfidenceVal.textContent = femaleConf.toFixed(2) + '%';
+                } else {
+                    genderBadgeCard.className = 'gender-result-card p-4 rounded-4 text-center text-white mb-4 shadow-sm bg-gradient-male';
+                    genderIcon.className = 'fa-solid fa-mars fs-1';
+                    topConfidenceVal.textContent = maleConf.toFixed(2) + '%';
+                }
+
+                // Confidence texts
+                femaleConfText.textContent = femaleConf.toFixed(2) + '%';
+                maleConfText.textContent = maleConf.toFixed(2) + '%';
+
+                // Animate progress bars
+                setTimeout(() => {
+                    femaleProgressBar.style.width = femaleConf + '%';
+                    maleProgressBar.style.width = maleConf + '%';
+                }, 50);
+            }
+
+            function showError(msg) {
+                errorMessage.textContent = msg;
+                errorState.classList.remove('d-none');
+            }
+
+            function hideError() {
+                errorState.classList.add('d-none');
+            }
+        });
+    </script>
+</body>
+</html>

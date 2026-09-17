@@ -1,0 +1,172 @@
+/* Custom Thesis Theme & Aesthetics */
+
+:root {
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-outfit: 'Outfit', sans-serif;
+    
+    --slate-900: #0f172a;
+    --slate-800: #1e293b;
+    --slate-700: #334155;
+    --slate-600: #475569;
+    --slate-300: #cbd5e1;
+    --slate-200: #e2e8f0;
+    --slate-100: #f1f5f9;
+    --slate-50:  #f8fafc;
+
+    --cyan-500: #06b6d4;
+    --cyan-400: #22d3ee;
+    --cyan-300: #67e8f9;
+    --cyan-200: #a5f3fc;
+
+    --pink-500: #ec4899;
+    --pink-600: #db2777;
+
+    --blue-500: #0ea5e9;
+    --blue-600: #0284c7;
+}
+
+body {
+    font-family: var(--font-sans);
+    background-color: #f4f7fa;
+    color: var(--slate-800);
+}
+
+.font-outfit {
+    font-family: var(--font-outfit);
+}
+
+/* Header Navbar */
+.bg-slate-900 {
+    background-color: var(--slate-900) !important;
+}
+
+.brand-icon-wrapper {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.text-cyan {
+    color: var(--cyan-400);
+}
+
+.text-cyan-300 {
+    color: var(--cyan-300);
+}
+
+.text-cyan-200 {
+    color: var(--cyan-200);
+}
+
+.fs-7 {
+    font-size: 0.85rem;
+}
+
+.fs-8 {
+    font-size: 0.75rem;
+}
+
+/* Hero Banner */
+.hero-banner {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f2b48 100%);
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+}
+
+.hero-bg-overlay {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.15) 0%, transparent 40%);
+    pointer-events: none;
+}
+
+.bg-cyan-500 {
+    background-color: var(--cyan-400) !important;
+}
+
+.backdrop-blur {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+/* Dropzone Styling */
+.drop-zone {
+    background-color: var(--slate-50);
+    border-color: var(--slate-300);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.drop-zone:hover, .drop-zone.drag-active {
+    background-color: #edf5ff;
+    border-color: var(--blue-500);
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.12);
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.upload-icon-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #e0f2fe;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Gender Result Card Gradients */
+.bg-gradient-female {
+    background: linear-gradient(135deg, #ec4899 0%, #be185d 100%) !important;
+}
+
+.bg-gradient-male {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%) !important;
+}
+
+.gender-result-card {
+    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.15);
+}
+
+/* Progress Bars */
+.progress-lg {
+    height: 14px;
+}
+
+.text-pink-500 { color: var(--pink-500); }
+.text-pink-600 { color: var(--pink-600); }
+.text-blue-500 { color: var(--blue-500); }
+.text-blue-600 { color: var(--blue-600); }
+
+.transition-all {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fw-extrabold {
+    font-weight: 800;
+}
+
+/* Utility Helpers */
+.max-w-sm {
+    max-width: 380px;
+}
+
+.tracking-wider {
+    letter-spacing: 0.05em;
+}
+
+.tracking-widest {
+    letter-spacing: 0.1em;
+}
+
+/* Smooth Scroll & Selection */
+::selection {
+    background: rgba(14, 165, 233, 0.25);
+    color: var(--slate-900);
+}
