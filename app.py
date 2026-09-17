@@ -240,8 +240,14 @@ def predict():
             img_preprocessed[:, :, :, 1] -= 116.779
             img_preprocessed[:, :, :, 2] -= 123.68
 
-        # 4. Model Prediction
-        preds = model.predict(img_preprocessed)
+        # 4. Model Prediction with torch.inference_mode() to prevent RAM spikes on 512MB limits
+        try:
+            import torch
+            with torch.inference_mode():
+                preds = model.predict(img_preprocessed)
+        except Exception:
+            preds = model.predict(img_preprocessed)
+
         
         # Format prediction
         if hasattr(preds, 'numpy'):
