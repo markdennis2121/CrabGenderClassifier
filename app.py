@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import importlib
 import numpy as np
 from PIL import Image
 from flask import Flask, render_template, request, jsonify
@@ -21,25 +22,23 @@ os.environ['KERAS_BACKEND'] = 'torch'
 loaded_model = None
 model_error = None
 preprocess_input_fn = None
+load_model_fn = None
 
-# Attempt loading model via keras or tensorflow.keras
+# Attempt loading model via keras or tensorflow.keras dynamically
 try:
     import keras
-    from keras.applications.resnet50 import preprocess_input as keras_preprocess
-    from keras.models import load_model as keras_load_model
-    preprocess_input_fn = keras_preprocess
-    load_model_fn = keras_load_model
-except Exception as e_keras:
+    preprocess_input_fn = keras.applications.resnet50.preprocess_input
+    load_model_fn = keras.models.load_model
+except ImportError:
     try:
-        import tensorflow as tf
-        from tensorflow.keras.applications.resnet50 import preprocess_input as tf_preprocess
-        from tensorflow.keras.models import load_model as tf_load_model
-        preprocess_input_fn = tf_preprocess
-        load_model_fn = tf_load_model
+        tf_resnet = importlib.import_module('tensorflow.keras.applications.resnet50')
+        tf_models = importlib.import_module('tensorflow.keras.models')
+        preprocess_input_fn = tf_resnet.preprocess_input
+        load_model_fn = tf_models.load_model
     except Exception as e_tf:
         load_model_fn = None
         preprocess_input_fn = None
-        model_error = f"Framework import error: {e_keras}"
+        model_error = f"Framework import error: {e_tf}"
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')

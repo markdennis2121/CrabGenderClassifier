@@ -8,6 +8,7 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV KERAS_BACKEND=torch
+ENV PORT=5000
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -17,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy requirements first for Docker layer caching
 COPY requirements.txt .
 
-# Install dependencies
+# Install CPU-only dependencies to stay under memory limits
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
@@ -26,8 +27,8 @@ COPY . .
 # Create uploads directory
 RUN mkdir -p static/uploads
 
-# Expose port
+# Expose default port
 EXPOSE 5000
 
-# Command to run the application using Gunicorn
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--workers", "1", "--threads", "2", "--timeout", "120"]
+# Command to run the application using Gunicorn dynamically binding to PORT
+CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-5000} --workers 1 --threads 2 --timeout 120"]
