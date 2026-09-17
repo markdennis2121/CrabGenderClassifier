@@ -9,3 +9,4 @@ ENV/
 static/uploads/*
 !static/uploads/.gitkeep
 .DS_Store
+scratch/
