@@ -15,11 +15,18 @@ if hasattr(sys.stdout, 'reconfigure'):
 if hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8')
 
-# Reduce TensorFlow / C++ logging noise
+# Environment and Threading Optimizations for memory-constrained platforms like Render (512MB RAM)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-
-# Ensure PyTorch is set as Keras backend if standalone Keras is used
 os.environ['KERAS_BACKEND'] = 'torch'
+os.environ['OMP_NUM_THREADS'] = '2'
+os.environ['MKL_NUM_THREADS'] = '2'
+
+try:
+    import torch
+    torch.set_grad_enabled(False)
+    torch.set_num_threads(2)
+except Exception:
+    pass
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
@@ -31,17 +38,18 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 MODEL_PATH = 'CrabClassifier_v2.keras'
 
-# Global state for lazy model loading
+# Global state for model loading
 loaded_model = None
 model_error = None
 preprocess_input_fn = None
 load_model_fn = None
+model_status = 'unloaded'  # 'unloaded', 'loading', 'ready', 'error'
 model_lock = threading.Lock()
 
 
 def get_model():
-    """Lazily load the model on demand to allow instant server startup on memory-constrained platforms like Render."""
-    global loaded_model, model_error, preprocess_input_fn, load_model_fn
+    """Load the model with lock protection and memory optimization."""
+    global loaded_model, model_error, preprocess_input_fn, load_model_fn, model_status
 
     if loaded_model is not None:
         return loaded_model, None, preprocess_input_fn
@@ -55,10 +63,12 @@ def get_model():
 
         if not os.path.exists(MODEL_PATH):
             model_error = f"Model file '{MODEL_PATH}' not found in project directory."
+            model_status = 'error'
             print(f"[ERROR] {model_error}")
             return None, model_error, None
 
-        print(f"[INFO] Lazy loading model from '{MODEL_PATH}'...")
+        model_status = 'loading'
+        print(f"[INFO] Background pre-warming model from '{MODEL_PATH}'...")
         start_time = time.time()
 
         # Attempt loading model via keras or tensorflow.keras dynamically
@@ -76,19 +86,34 @@ def get_model():
                 load_model_fn = None
                 preprocess_input_fn = None
                 model_error = f"Framework import error: {e_tf}"
+                model_status = 'error'
                 print(f"[ERROR] {model_error}")
                 return None, model_error, None
 
         try:
             loaded_model = load_model_fn(MODEL_PATH)
             elapsed = time.time() - start_time
+            model_status = 'ready'
             print(f"[SUCCESS] Successfully loaded Keras model in {elapsed:.2f}s from '{MODEL_PATH}'")
             gc.collect()
             return loaded_model, None, preprocess_input_fn
         except Exception as e:
             model_error = f"Failed to load model file: {e}"
+            model_status = 'error'
             print(f"[ERROR] {model_error}")
             return None, model_error, None
+
+
+def prewarm_in_background():
+    """Asynchronously load model in background thread upon application boot."""
+    try:
+        get_model()
+    except Exception as e:
+        print(f"[ERROR] Background pre-warm failed: {e}")
+
+
+# Start background pre-warming immediately so model is ready by the time user interacts
+threading.Thread(target=prewarm_in_background, daemon=True).start()
 
 
 def allowed_file(filename):
@@ -101,12 +126,29 @@ def index():
     return render_template(
         'index.html',
         model_loaded=model_available,
+        model_status=model_status,
         model_error=model_error if model_error else ("Model file missing" if not model_available else None)
     )
 
 
+@app.route('/status')
+def status():
+    """API endpoint to check background model initialization status."""
+    return jsonify({
+        'status': model_status,
+        'ready': (loaded_model is not None),
+        'error': model_error
+    })
+
+
 @app.route('/predict', methods=['POST'])
 def predict():
+    if model_status == 'loading' and loaded_model is None:
+        return jsonify({
+            'status': 'initializing',
+            'error': 'Model is currently initializing on the server. Please wait a few seconds and try again.'
+        }), 503
+
     model, err, preprocess_fn = get_model()
     if model is None:
         return jsonify({'error': f'Model is not loaded. Details: {err or "Unknown error"}'}), 500
@@ -197,7 +239,7 @@ def predict():
 
 
 if __name__ == '__main__':
-    # Pre-warm model in development mode
     print("[INFO] Starting Crab Gender Classifier App on http://127.0.0.1:5000...")
     app.run(host='0.0.0.0', port=5000, debug=True)
+
 

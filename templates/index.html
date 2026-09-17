@@ -398,30 +398,45 @@
                 const formData = new FormData();
                 formData.append('file', selectedFile);
 
-                try {
-                    const response = await fetch('/predict', {
-                        method: 'POST',
-                        body: formData
-                    });
+                async function sendPredictionRequest(attemptsRemaining = 5) {
+                    try {
+                        const response = await fetch('/predict', {
+                            method: 'POST',
+                            body: formData
+                        });
 
-                    const data = await response.json();
+                        const data = await response.json();
 
-                    if (!response.ok || data.error) {
-                        throw new Error(data.error || 'Prediction failed');
+                        if (response.status === 503 || data.status === 'initializing') {
+                            if (attemptsRemaining > 0) {
+                                btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Model Initializing...';
+                                const loadingTitle = loadingState.querySelector('h6');
+                                if (loadingTitle) loadingTitle.textContent = "Model is initializing on server... Retrying in 3s";
+                                await new Promise(r => setTimeout(r, 3000));
+                                return await sendPredictionRequest(attemptsRemaining - 1);
+                            }
+                        }
+
+                        if (!response.ok || data.error) {
+                            throw new Error(data.error || 'Prediction failed');
+                        }
+
+                        // Display results
+                        displayResults(data);
+
+                    } catch (err) {
+                        showError(err.message || 'Error occurred while contacting prediction server.');
+                        loadingState.classList.add('d-none');
+                    } finally {
+                        predictBtn.disabled = false;
+                        btnText.innerHTML = '<i class="fa-solid fa-magnifying-glass-chart me-1"></i> Predict Gender';
+                        btnSpinner.classList.add('d-none');
                     }
-
-                    // Display results
-                    displayResults(data);
-
-                } catch (err) {
-                    showError(err.message || 'Error occurred while contacting prediction server.');
-                    loadingState.classList.add('d-none');
-                } finally {
-                    predictBtn.disabled = false;
-                    btnText.innerHTML = '<i class="fa-solid fa-magnifying-glass-chart me-1"></i> Predict Gender';
-                    btnSpinner.classList.add('d-none');
                 }
+
+                await sendPredictionRequest();
             });
+
 
             function displayResults(data) {
                 loadingState.classList.add('d-none');
