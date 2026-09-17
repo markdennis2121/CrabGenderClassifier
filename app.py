@@ -36,7 +36,10 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'bmp'}
 # Create uploads directory if not present
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-MODEL_PATH = 'CrabClassifier_v2.keras'
+# Prefer Fine-Tuned v3 model over v2
+V3_MODEL_PATH = 'CrabClassifier_v3_FineTuned.keras'
+V2_MODEL_PATH = 'CrabClassifier_v2.keras'
+MODEL_PATH = V3_MODEL_PATH if os.path.exists(V3_MODEL_PATH) else V2_MODEL_PATH
 
 # Global state for model loading
 loaded_model = None
@@ -45,6 +48,7 @@ preprocess_input_fn = None
 load_model_fn = None
 model_status = 'unloaded'  # 'unloaded', 'loading', 'ready', 'error'
 model_lock = threading.Lock()
+
 
 
 def get_model():
@@ -91,12 +95,16 @@ def get_model():
                 return None, model_error, None
 
         try:
-            loaded_model = load_model_fn(MODEL_PATH)
+            try:
+                loaded_model = load_model_fn(MODEL_PATH, compile=False)
+            except TypeError:
+                loaded_model = load_model_fn(MODEL_PATH)
             elapsed = time.time() - start_time
             model_status = 'ready'
-            print(f"[SUCCESS] Successfully loaded Keras model in {elapsed:.2f}s from '{MODEL_PATH}'")
+            print(f"[SUCCESS] Successfully loaded Keras model (compile=False) in {elapsed:.2f}s from '{MODEL_PATH}'")
             gc.collect()
             return loaded_model, None, preprocess_input_fn
+
         except Exception as e:
             model_error = f"Failed to load model file: {e}"
             model_status = 'error'

@@ -32,7 +32,7 @@
             <div class="d-none d-md-flex align-items-center gap-2">
                 {% if model_loaded %}
                     <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle rounded-pill px-3 py-2">
-                        <i class="fa-solid fa-circle-check me-1"></i> Model Active (CrabClassifier_v2.keras)
+                        <i class="fa-solid fa-circle-check me-1"></i> Model Active (CrabClassifier_v3_FineTuned.keras)
                     </span>
                 {% else %}
                     <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle rounded-pill px-3 py-2" title="{{ model_error }}">
@@ -58,8 +58,9 @@
                         Blue Swimming Crab (<span class="fst-italic text-cyan-200">Portunus pelagicus</span>) Gender Classifier
                     </h1>
                     <p class="text-slate-300 mb-0 leading-relaxed fs-6">
-                        Upload an image of a Blue Swimming Crab to predict its gender with high precision using the trained deep convolutional network <span class="fw-semibold text-white">CrabClassifier_v2.keras</span> (ResNet50 Architecture, 224x224 px input).
+                        Upload an image of a Blue Swimming Crab to predict its gender with high precision using the fine-tuned deep convolutional network <span class="fw-semibold text-white">CrabClassifier_v3_FineTuned.keras</span> (Fine-Tuned ResNet50 Architecture, 224x224 px input).
                     </p>
+
                 </div>
                 <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
                     <div class="model-badge-card p-3 rounded-3 bg-white bg-opacity-10 backdrop-blur border border-white border-opacity-20 d-inline-block text-start">
@@ -343,12 +344,15 @@
             });
 
             function handleFileSelect(file) {
-                if (!file.type.match('image.*')) {
-                    showError('Please select a valid image file (JPG, PNG, WEBP, etc.).');
+                if (!file) return;
+                const isImage = (file.type && file.type.startsWith('image/')) || /\.(jpg|jpeg|png|webp|bmp)$/i.test(file.name || '');
+                if (!isImage) {
+                    showError('Please select a valid image file (JPG, PNG, WEBP, or BMP).');
                     return;
                 }
                 selectedFile = file;
                 fileName.textContent = file.name;
+
 
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -405,9 +409,18 @@
                             body: formData
                         });
 
-                        const data = await response.json();
+                        let data = {};
+                        const responseText = await response.text();
+                        try {
+                            data = JSON.parse(responseText);
+                        } catch (e) {
+                            if (response.status === 502 || response.status === 504 || response.status === 500) {
+                                throw new Error(`Server is starting up (HTTP ${response.status}). Please wait a moment and try again.`);
+                            }
+                            throw new Error(`Invalid response from server (HTTP ${response.status}).`);
+                        }
 
-                        if (response.status === 503 || data.status === 'initializing') {
+                        if (response.status === 503 || (data && data.status === 'initializing')) {
                             if (attemptsRemaining > 0) {
                                 btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Model Initializing...';
                                 const loadingTitle = loadingState.querySelector('h6');
@@ -417,12 +430,13 @@
                             }
                         }
 
-                        if (!response.ok || data.error) {
-                            throw new Error(data.error || 'Prediction failed');
+                        if (!response.ok || (data && data.error)) {
+                            throw new Error((data && data.error) || `Prediction failed (HTTP ${response.status}).`);
                         }
 
                         // Display results
                         displayResults(data);
+
 
                     } catch (err) {
                         showError(err.message || 'Error occurred while contacting prediction server.');
