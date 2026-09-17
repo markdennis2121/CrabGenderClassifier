@@ -170,6 +170,11 @@ def index():
     )
 
 
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
+
+
 @app.route('/status')
 def status():
     """API endpoint to check background model initialization status."""
@@ -178,6 +183,7 @@ def status():
         'ready': (loaded_model is not None),
         'error': model_error
     })
+
 
 
 @app.route('/predict', methods=['POST'])
