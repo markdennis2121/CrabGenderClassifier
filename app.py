@@ -37,9 +37,37 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'bmp'}
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Prefer Fine-Tuned v3 model over v2
+# Model paths
 V3_MODEL_PATH = 'CrabClassifier_v3_FineTuned.keras'
 V2_MODEL_PATH = 'CrabClassifier_v2.keras'
-MODEL_PATH = V3_MODEL_PATH if os.path.exists(V3_MODEL_PATH) else V2_MODEL_PATH
+
+
+def is_lfs_pointer(filepath):
+    """Check if a file is a Git LFS text pointer instead of actual binary weights."""
+    if not os.path.exists(filepath):
+        return False
+    if os.path.getsize(filepath) < 2048:
+        try:
+            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read(500)
+                if 'version https://git-lfs.github.com' in content or 'oid sha256:' in content:
+                    return True
+        except Exception:
+            pass
+    return False
+
+
+def resolve_model_path():
+    """Select the best available model file, avoiding empty LFS text pointers."""
+    if os.path.exists(V3_MODEL_PATH) and not is_lfs_pointer(V3_MODEL_PATH):
+        return V3_MODEL_PATH
+    if os.path.exists(V2_MODEL_PATH) and not is_lfs_pointer(V2_MODEL_PATH):
+        print(f"[WARNING] '{V3_MODEL_PATH}' is missing or an un-pulled LFS pointer. Falling back to '{V2_MODEL_PATH}'")
+        return V2_MODEL_PATH
+    return V3_MODEL_PATH
+
+
+MODEL_PATH = resolve_model_path()
 
 # Global state for model loading
 loaded_model = None
@@ -50,10 +78,9 @@ model_status = 'unloaded'  # 'unloaded', 'loading', 'ready', 'error'
 model_lock = threading.Lock()
 
 
-
 def get_model():
     """Load the model with lock protection and memory optimization."""
-    global loaded_model, model_error, preprocess_input_fn, load_model_fn, model_status
+    global loaded_model, model_error, preprocess_input_fn, load_model_fn, model_status, MODEL_PATH
 
     if loaded_model is not None:
         return loaded_model, None, preprocess_input_fn
@@ -65,14 +92,17 @@ def get_model():
         if loaded_model is not None:
             return loaded_model, None, preprocess_input_fn
 
-        if not os.path.exists(MODEL_PATH):
-            model_error = f"Model file '{MODEL_PATH}' not found in project directory."
+        target_path = resolve_model_path()
+        MODEL_PATH = target_path
+
+        if not os.path.exists(target_path) or is_lfs_pointer(target_path):
+            model_error = f"Model file '{target_path}' is missing or an un-pulled Git LFS pointer."
             model_status = 'error'
             print(f"[ERROR] {model_error}")
             return None, model_error, None
 
         model_status = 'loading'
-        print(f"[INFO] Background pre-warming model from '{MODEL_PATH}'...")
+        print(f"[INFO] Background pre-warming model from '{target_path}'...")
         start_time = time.time()
 
         # Attempt loading model via keras or tensorflow.keras dynamically
@@ -96,20 +126,21 @@ def get_model():
 
         try:
             try:
-                loaded_model = load_model_fn(MODEL_PATH, compile=False)
+                loaded_model = load_model_fn(target_path, compile=False)
             except TypeError:
-                loaded_model = load_model_fn(MODEL_PATH)
+                loaded_model = load_model_fn(target_path)
             elapsed = time.time() - start_time
             model_status = 'ready'
-            print(f"[SUCCESS] Successfully loaded Keras model (compile=False) in {elapsed:.2f}s from '{MODEL_PATH}'")
+            print(f"[SUCCESS] Successfully loaded Keras model (compile=False) in {elapsed:.2f}s from '{target_path}'")
             gc.collect()
             return loaded_model, None, preprocess_input_fn
 
         except Exception as e:
-            model_error = f"Failed to load model file: {e}"
+            model_error = f"Failed to load model file '{target_path}': {e}"
             model_status = 'error'
             print(f"[ERROR] {model_error}")
             return None, model_error, None
+
 
 
 def prewarm_in_background():

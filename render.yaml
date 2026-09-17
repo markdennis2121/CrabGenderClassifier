@@ -2,7 +2,7 @@ services:
   - type: web
     name: blue-swimming-crab-classifier
     env: python
-    buildCommand: pip install --no-cache-dir -r requirements.txt
+    buildCommand: (git lfs pull || true) && pip install --no-cache-dir -r requirements.txt
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120
     envVars:
       - key: PYTHON_VERSION
