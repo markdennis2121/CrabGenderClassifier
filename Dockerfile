@@ -11,12 +11,9 @@ ENV KERAS_BACKEND=torch
 ENV OMP_NUM_THREADS=1
 ENV MKL_NUM_THREADS=1
 
-# Install system dependencies including git and git-lfs
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    git \
-    git-lfs \
-    && git lfs install \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for Docker layer caching
@@ -28,9 +25,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application files
 COPY . .
 
-# Ensure Git LFS binary files are pulled if pointer files were copied
-RUN git lfs pull || true
-
 # Create uploads directory
 RUN mkdir -p static/uploads
 
@@ -39,4 +33,5 @@ EXPOSE 5000
 
 # Command to run the application using Gunicorn dynamically binding to PORT
 CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-5000} --workers 1 --threads 2 --timeout 120"]
+
 
