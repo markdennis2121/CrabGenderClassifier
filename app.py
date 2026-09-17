@@ -18,15 +18,18 @@ if hasattr(sys.stderr, 'reconfigure'):
 # Environment and Threading Optimizations for memory-constrained platforms like Render (512MB RAM)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 os.environ['KERAS_BACKEND'] = 'torch'
-os.environ['OMP_NUM_THREADS'] = '2'
-os.environ['MKL_NUM_THREADS'] = '2'
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
+os.environ['NUMEXPR_NUM_THREADS'] = '1'
 
 try:
     import torch
     torch.set_grad_enabled(False)
-    torch.set_num_threads(2)
+    torch.set_num_threads(1)
 except Exception:
     pass
+
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
