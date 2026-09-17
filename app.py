@@ -41,6 +41,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Prefer Fine-Tuned v3 model over v2
 # Model paths
+V3_F16_MODEL_PATH = 'CrabClassifier_v3_float16.keras'
 V3_MODEL_PATH = 'CrabClassifier_v3_FineTuned.keras'
 V2_MODEL_PATH = 'CrabClassifier_v2.keras'
 
@@ -61,16 +62,19 @@ def is_lfs_pointer(filepath):
 
 
 def resolve_model_path():
-    """Select the best available model file, avoiding empty LFS text pointers."""
+    """Select the best available model file, prioritizing lightweight Float16 model for 512MB RAM compatibility."""
+    if os.path.exists(V3_F16_MODEL_PATH) and not is_lfs_pointer(V3_F16_MODEL_PATH):
+        return V3_F16_MODEL_PATH
     if os.path.exists(V3_MODEL_PATH) and not is_lfs_pointer(V3_MODEL_PATH):
         return V3_MODEL_PATH
     if os.path.exists(V2_MODEL_PATH) and not is_lfs_pointer(V2_MODEL_PATH):
-        print(f"[WARNING] '{V3_MODEL_PATH}' is missing or an un-pulled LFS pointer. Falling back to '{V2_MODEL_PATH}'")
+        print(f"[WARNING] Float16 and v3 models are missing or un-pulled pointers. Falling back to '{V2_MODEL_PATH}'")
         return V2_MODEL_PATH
-    return V3_MODEL_PATH
+    return V3_F16_MODEL_PATH
 
 
 MODEL_PATH = resolve_model_path()
+
 
 # Global state for model loading
 loaded_model = None
